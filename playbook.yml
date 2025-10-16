@@ -4,3 +4,7 @@
   become: true
   roles:
     - perl
+    - java
+    - nginx
+    - nodejs
+    - postgres
