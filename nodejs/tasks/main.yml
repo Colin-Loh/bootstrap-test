@@ -1,0 +1,43 @@
+---
+- name: Check if VM is Ubuntu
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Ubuntu"
+    fail_msg: "This role currently supports Ubuntu only."
+
+- name: Check if NodeSource file exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/nodesource.list
+  register: ns_repo
+
+- name: Read NodeSource file if file exists
+  ansible.builtin.slurp:
+    path: /etc/apt/sources.list.d/nodesource.list
+  register: ns_repo_content
+  when: ns_repo.stat.exists
+
+- name: Set NodeSource file content as a variable
+  ansible.builtin.set_fact:
+    repo_text: "{{ (ns_repo_content.content | b64decode) if ns_repo.stat.exists else '' }}"
+
+- name: Check if nodejs version matches version {{ node_major }}.x
+  ansible.builtin.set_fact:
+    setup_needed: "{{ (not ns_repo.stat.exists) or (('node_' ~ node_major ~ '.x') not in repo_text) }}"
+
+- name: Download NodeSource setup
+  ansible.builtin.get_url:
+    url: "https://deb.nodesource.com/setup_{{ node_major }}.x"
+    dest: "{{ nodesource_setup_path }}"
+    mode: "0755"
+    force: yes
+
+- name: Run NodeSource setup if nodejs does not match {{ node_major }}
+  become: true
+  ansible.builtin.command: "bash {{ nodesource_setup_path }}"
+  when: setup_needed
+
+- name: Install Node.js from NodeSource
+  become: true
+  ansible.builtin.apt:
+    name: nodejs
+    state: latest

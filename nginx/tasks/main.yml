@@ -1,0 +1,13 @@
+---
+- name: Check if VM is Ubuntu
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Ubuntu"
+    fail_msg: "This role currently supports Ubuntu only."
+
+- name: Install nginx {{ nginx_version }}.x
+  ansible.builtin.apt:
+    update_cache: true
+    name: nginx={{ nginx_version }}.*
+    state: present
+  become: true

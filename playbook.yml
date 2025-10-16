@@ -1,0 +1,6 @@
+---
+- name: Bootstrap NEMO VM
+  hosts: vms
+  become: true
+  roles:
+    - perl

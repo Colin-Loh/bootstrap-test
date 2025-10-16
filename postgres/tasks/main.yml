@@ -1,0 +1,50 @@
+---
+- name: Check if VM is Ubuntu
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Ubuntu"
+    fail_msg: "This role currently supports Ubuntu only."
+
+- name: Install postgresql-common
+  ansible.builtin.apt:
+    update_cache: true
+    name: postgresql-common
+    state: present
+  become: true
+
+- name: Ensure Postgres directory exists
+  become: true
+  ansible.builtin.file:
+    path: /usr/share/postgresql-common/pgdg
+    state: directory
+    mode: "0755"
+
+- name: Download PostgreSQL GPG key
+  become: true
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+    mode: "0644"
+    validate_certs: yes
+
+## Depends on Ubuntu version, set the correct Postgres base URL
+- name: Set PGDG base URL
+  ansible.builtin.set_fact:
+    pgdg_base_url: >-
+      {{ 'http://apt-archive.postgresql.org/pub/repos/apt'
+         if ansible_distribution_release == 'focal'
+         else 'http://apt.postgresql.org/pub/repos/apt' }}
+
+- name: Configure PGDG repo (scoped key, correct host)
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] {{ pgdg_base_url }} {{ ansible_distribution_release }}-pgdg main"
+    filename: pgdg
+    state: present
+
+- name: Install PostgreSQL {{ postgres_version }}
+  become: true
+  ansible.builtin.apt:
+    name:
+      - postgresql-{{ postgres_version }}
+    state: present

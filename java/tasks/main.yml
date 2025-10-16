@@ -1,0 +1,12 @@
+---
+- name: Check if VM is Ubuntu
+  ansible.builtin.assert:
+    that: [ansible_distribution == "Ubuntu"]
+    fail_msg: "This role currently supports Ubuntu only."
+
+- name: Install JDK 21
+  ansible.builtin.apt:
+    update_cache: true
+    name: openjdk-21-jdk
+    state: present
+  become: true
